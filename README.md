@@ -2,17 +2,17 @@
 
 This is a tool for converting PostScript (`.ps` or `.ps.gz`) files to PDF entirely in the browser.
 
-Serving at {TODO: url here}.
+Serving at [https://ps-to-pdf.shreevatsa.net](https://ps-to-pdf.shreevatsa.net)
 
 My preferred way when not on a phone is to use [this browser extension](https://chromewebstore.google.com/detail/postscript-viewer/ebpiondkhkldijolgmhfenknngkkjola) ([GitHub](https://github.com/ochachacha/ps-wasm)), but this tool is for other times, or others who don't have it installed.
 
-Mostly written by Claude (Sonnet 4.5) and then by ChatGPT (GPT-5 Thinking). Uses Ghostscript compiled to WebAssembly, from [this repo](https://github.com/laurentmmeyer/ghostscript-pdf-compress.wasm).
+Tested on {Chrome, Firefox} on {macOS, Android}, and Safari on macOS. Not tested on iPhones.
 
-TODO: Tested on {Chrome, Firefox} on {macOS, Android}, and Safari on macOS. Not tested on iPhones.
+Code (and parts of this README after this paragraph) mostly written by Claude (Sonnet 4.5) and then by ChatGPT (GPT-5 Thinking). Uses Ghostscript compiled to WebAssembly, from [this repo](https://github.com/laurentmmeyer/ghostscript-pdf-compress.wasm).
 
 ## Quick Start
 
-Visit <url> and use it.
+Visit [https://ps-to-pdf.shreevatsa.net](https://ps-to-pdf.shreevatsa.net) and use it.
 
 Alternatively, put these three files:
 
@@ -20,7 +20,7 @@ Alternatively, put these three files:
 - gs.wasm
 - index.html
 
-and start a server, for example
+in a directory and start a server, for example
 
 ```bash
 python3 -m http.server 8000
@@ -31,7 +31,7 @@ python3 -m http.server 8000
 
 1. User uploads PostScript file or provides URL
 2. File is loaded into browser (stays local)
-3. Ghostscript WebAssembly converts PS → PDF
+3. Ghostscript WebAssembly converts PS to PDF
 4. PDF is displayed in browser and can be downloaded
 
 The ~14MB `gs.wasm` file is downloaded once and cached by your browser.
