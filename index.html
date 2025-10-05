@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostScript to PDF Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .input-section {
+            margin-bottom: 25px;
+        }
+
+        .input-section h2 {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-button:hover:not(.active) {
+            background: #f0f0f0;
+        }
+
+        .tab-button.active {
+            cursor: default;
+            /* no hand cursor */
+            pointer-events: none;
+            /* ignore clicks */
+        }
+
+        .tab-button.active:hover {
+            /* keep the same look on hover so it doesn't feel pressable */
+            background: inherit;
+            /* or the same color you use for .active */
+            filter: none;
+        }
+
+        .tab-button {
+            background: transparent !important;
+            color: #475569;
+            /* neutral text */
+            border: 0;
+            /* no button border */
+            border-radius: 0;
+            /* no pill/button shape */
+            padding: 10px 14px;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            /* becomes the selection indicator */
+        }
+
+        /* Selected tab reads as “active section”, not a CTA */
+        .tab-button.active {
+            color: #111827;
+            background: transparent !important;
+            border-bottom-color: #6366f1;
+            /* your blue as an underline */
+            box-shadow: none;
+        }
+
+        /* Hover state for unselected tabs: subtle, still not a button */
+        .tab-button:not(.active):hover {
+            background: transparent !important;
+            color: #0f172a;
+            border-bottom-color: rgba(99, 102, 241, 0.35);
+        }
+
+        /* Optional: remove any previous hover style that added a filled bg */
+        .tab-button:hover:not(.active) {
+            background: transparent !important;
+        }
+
+
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 40px;
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .file-input-label:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
+
+        .file-input-label.has-file {
+            border-style: solid;
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .url-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .convert-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+
+        .convert-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .convert-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            margin-top: 15px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            white-space: pre-line;
+            text-align: left;
+        }
+
+        .status-message.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .pdf-viewer {
+            margin-top: 20px;
+            width: 100%;
+            height: 80vh;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .download-section {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .download-button {
+            flex: 1;
+            padding: 12px 20px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .download-button:hover {
+            background: #45a049;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root">
+        <div class="container">
+            <div class="header">
+                <h1>📄 PostScript to PDF Converter</h1>
+                <p>Convert PostScript files to PDF directly in your browser</p>
+            </div>
+
+            <div class="card">
+                <div class="input-section">
+                    <h2>Choose Input Method</h2>
+                    <div class="tab-buttons">
+                        <button class="tab-button active" data-mode="file" onclick="switchInputMode('file')">
+                            📁 File upload
+                        </button>
+                        <button class="tab-button" data-mode="url" onclick="switchInputMode('url')">
+                            🔗 URL
+                        </button>
+                    </div>
+
+                    <!-- File Upload Section -->
+                    <div id="fileSection" class="input-content">
+                        <div class="file-input-wrapper">
+                            <input type="file" accept=".ps,.eps,.gz,application/postscript,application/gzip" id="fileInput" onchange="handleFileChange(event)" />
+                            <label for="fileInput" class="file-input-label" id="fileLabel">
+                                <span style="font-size: 2rem">📤</span>
+                                <div>
+                                    <div style="font-weight: bold; margin-bottom: 5px">
+                                        Click to select a PostScript file
+                                    </div>
+                                    <div style="font-size: 0.9rem; opacity: 0.7">
+                                        Supported formats: .ps, .eps, .ps.gz
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- URL Section -->
+                    <div id="urlSection" class="input-content" style="display: none">
+                        <input type="url" class="url-input" id="urlInput" placeholder="https://example.com/file.ps" oninput="handleUrlChange()" />
+                    </div>
+
+                    <button class="convert-button" id="convertButton" onclick="handleConvert()" disabled>
+                        🔄 Convert to PDF
+                    </button>
+
+                    <div id="statusMessage" style="display: none"></div>
+                </div>
+
+                <!-- PDF Viewer Section -->
+                <div id="pdfSection" style="display: none">
+                    <h2 style="margin-bottom: 15px; color: #333">Preview & Download</h2>
+                    <iframe id="pdfViewer" class="pdf-viewer" title="PDF Preview"></iframe>
+                    <div class="download-section">
+                        <button class="download-button" onclick="downloadPDF()">
+                            ⬇️ Download PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>
+                    Powered by <a href="https://www.ghostscript.com/" target="_blank" rel="noopener">Ghostscript</a> compiled to WebAssembly
+                    <br />
+                    All processing happens locally in your browser - your files never leave your device
+                    <br />
+                    Open source software licensed under <a href="https://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank" rel="noopener">AGPL-3.0</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        const state = {
+            inputMode: 'file',
+            selectedFile: null,
+            url: '',
+            pdfBlob: null,
+            pdfUrl: null,
+            isConverting: false
+        };
+
+        // DOM elements
+        const elements = {
+            fileSection: document.getElementById('fileSection'),
+            urlSection: document.getElementById('urlSection'),
+            fileInput: document.getElementById('fileInput'),
+            fileLabel: document.getElementById('fileLabel'),
+            urlInput: document.getElementById('urlInput'),
+            convertButton: document.getElementById('convertButton'),
+            statusMessage: document.getElementById('statusMessage'),
+            pdfSection: document.getElementById('pdfSection'),
+            pdfViewer: document.getElementById('pdfViewer')
+        };
+
+        // Check if data is gzipped (magic bytes: 1f 8b)
+        function isGzipped(data) {
+            const arr = new Uint8Array(data);
+            return arr.length >= 2 && arr[0] === 0x1f && arr[1] === 0x8b;
+        }
+
+        // Native gzip inflate (modern browsers, 2023+)
+        async function decompressGzip(arrayBuffer) {
+            if (!('DecompressionStream' in self)) {
+                throw new Error('This page requires a modern browser with DecompressionStream.');
+            }
+            const ds = new DecompressionStream('gzip');
+            const stream = new Blob([arrayBuffer]).stream().pipeThrough(ds);
+            const ab = await new Response(stream).arrayBuffer();
+            return ab; // ArrayBuffer
+        }
+
+
+        // Process PostScript data (decompress if needed)
+        async function processPostScriptData(arrayBuffer, filename) {
+            // Check if file is gzipped by extension or magic bytes
+            const isGzFilename = filename && (filename.endsWith('.gz') || filename.endsWith('.ps.gz'));
+            const isGzData = isGzipped(arrayBuffer);
+
+            if (isGzFilename || isGzData) {
+                if (!('DecompressionStream' in self)) {
+                    showStatus('Your browser is too old for native gzip. Please use a modern browser (2023+).', 'error');
+                    elements.convertButton.disabled = true;
+                }
+                showStatus('Decompressing gzipped file...', 'loading');
+                return decompressGzip(arrayBuffer);
+            }
+
+            return arrayBuffer;
+        }
+
+        // Switch between file and URL input modes
+        function switchInputMode(mode) {
+            state.inputMode = mode;
+
+            // Update button styles
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Show/hide sections
+            if (mode === 'file') {
+                elements.fileSection.style.display = 'block';
+                elements.urlSection.style.display = 'none';
+            } else {
+                elements.fileSection.style.display = 'none';
+                elements.urlSection.style.display = 'block';
+            }
+
+            updateConvertButton();
+            hideStatus();
+            hidePdfSection();
+        }
+
+        // Handle file selection
+        function handleFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                state.selectedFile = file;
+
+                // Update label to show selected file
+                elements.fileLabel.classList.add('has-file');
+                elements.fileLabel.innerHTML = `
+                    <span>✓</span>
+                    <span><strong>Selected:</strong> ${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>
+                `;
+            }
+
+            updateConvertButton();
+            hideStatus();
+            hidePdfSection();
+        }
+
+        // Handle URL input change
+        function handleUrlChange() {
+            state.url = elements.urlInput.value.trim();
+            updateConvertButton();
+            hideStatus();
+            hidePdfSection();
+        }
+
+        // Update convert button state
+        function updateConvertButton() {
+            const canConvert = !state.isConverting && (
+                (state.inputMode === 'file' && state.selectedFile !== null) ||
+                (state.inputMode === 'url' && state.url !== '')
+            );
+
+            elements.convertButton.disabled = !canConvert;
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            elements.statusMessage.className = `status-message ${type}`;
+
+            // Check if this is a CORS error with a download link
+            if (type === 'error' && message.includes('Click below to download')) {
+                // Extract URL from the message
+                const urlMatch = message.match(/https?:\/\/[^\s\n]+/);
+                const url = urlMatch ? urlMatch[0] : null;
+
+                // Create message without the "Click below" line
+                const messageWithoutPrompt = message.replace(/\n\nClick below to download the file directly\.$/, '');
+
+                elements.statusMessage.innerHTML = '';
+
+                // Add the text content
+                const textDiv = document.createElement('div');
+                textDiv.textContent = messageWithoutPrompt;
+                textDiv.style.marginBottom = '10px';
+                elements.statusMessage.appendChild(textDiv);
+
+                // Add download button if we found a URL
+                if (url) {
+                    const downloadBtn = document.createElement('a');
+                    downloadBtn.href = url;
+                    downloadBtn.download = url.split('/').pop() || 'file.ps';
+                    downloadBtn.className = 'download-button';
+                    downloadBtn.style.display = 'inline-block';
+                    downloadBtn.style.marginTop = '10px';
+                    downloadBtn.textContent = '⬇️ Download File Directly';
+                    elements.statusMessage.appendChild(downloadBtn);
+                }
+            } else {
+                elements.statusMessage.textContent = message;
+            }
+
+            elements.statusMessage.style.display = 'block';
+        }
+
+        // Hide status message
+        function hideStatus() {
+            elements.statusMessage.style.display = 'none';
+        }
+
+        // Show PDF section
+        function showPdfSection(pdfUrl) {
+            elements.pdfViewer.src = pdfUrl;
+            elements.pdfSection.style.display = 'block';
+        }
+
+        // Hide PDF section
+        function hidePdfSection() {
+            if (state.pdfUrl) {
+                URL.revokeObjectURL(state.pdfUrl);
+                state.pdfUrl = null;
+            }
+            elements.pdfSection.style.display = 'none';
+            elements.pdfViewer.src = '';
+        }
+
+        // Update button to loading state
+        function setLoadingState(isLoading) {
+            state.isConverting = isLoading;
+
+            if (isLoading) {
+                elements.convertButton.innerHTML = `
+                    <span class="spinner"></span>
+                    Converting...
+                `;
+            } else {
+                elements.convertButton.innerHTML = '🔄 Convert to PDF';
+            }
+
+            updateConvertButton();
+        }
+
+        // Convert PostScript to PDF
+        async function convertPSToPDF(psData) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const jsURL = new URL(window.GS_JS || 'gs.js', document.baseURI).href;
+                    const wasmURL = new URL(window.GS_WASM || 'gs.wasm', document.baseURI).href;
+
+                    const code = `self.onmessage = function(e){
+  var psBytes = e.data.psBytes;
+  var args = e.data.args;
+  var jsURL = e.data.jsURL;
+  var wasmURL = e.data.wasmURL;
+  var send = function(m){ self.postMessage(m); };
+  var log = function(x){ send({type:'log', line:String(x)}); };
+  try {
+    self.Module = {
+      locateFile: function(p){ return p.endsWith('.wasm') ? wasmURL : p; },
+      arguments: args,
+      preRun: [ function(){ FS.writeFile('input.ps', new Uint8Array(psBytes)); } ],
+      postRun: [ function(){ try { var out = FS.readFile('output.pdf', {encoding:'binary'}); send({type:'done', pdfBytes: out.buffer}, [out.buffer]); } catch(err){ send({type:'error', message: String(err && err.message || err)}); } } ],
+      print: function(t){ log(t); },
+      printErr: function(t){ log('[err] '+t); },
+      setStatus: function(t){ if (t) log(t); }
+    };
+    importScripts(jsURL);
+  } catch (err) { send({type:'error', message: String(err && err.message || err)}); }
+};`;
+
+                    const blob = new Blob([code], { type: 'text/javascript' });
+                    const worker = new Worker(URL.createObjectURL(blob));
+
+                    const args = [
+                        '-sDEVICE=pdfwrite',
+                        '-dNOPAUSE',
+                        '-dBATCH',
+                        '-dSAFER',
+                        '-sOutputFile=output.pdf',
+                        'input.ps'
+                    ];
+
+                    worker.onmessage = (ev) => {
+                        const t = ev.data && ev.data.type;
+                        if (t === 'error') {
+                            try { worker.terminate(); } catch { }
+                            reject(new Error(ev.data.message || 'Ghostscript error'));
+                        } else if (t === 'done') {
+                            try { worker.terminate(); } catch { }
+                            const pdfBytes = new Uint8Array(ev.data.pdfBytes);
+                            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                            resolve(blob);
+                        } else if (t === 'log') {
+                            if (window.console && console.log) console.log('GS:', ev.data.line);
+                        }
+                    };
+
+                    worker.onerror = (e) => {
+                        try { worker.terminate(); } catch { }
+                        reject(new Error('Worker error: ' + (e && e.message || e)));
+                    };
+
+                    worker.postMessage({ psBytes: psData, args, jsURL, wasmURL });
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        }
+
+        // Main conversion handler
+        async function handleConvert() {
+            setLoadingState(true);
+            showStatus('Starting conversion...', 'loading');
+            hidePdfSection();
+
+            try {
+                let psData;
+                let filename;
+
+                if (state.inputMode === 'file') {
+                    if (!state.selectedFile) {
+                        throw new Error('Please select a PostScript file');
+                    }
+                    const rawData = await state.selectedFile.arrayBuffer();
+                    filename = state.selectedFile.name;
+                    psData = await processPostScriptData(rawData, filename);
+                } else {
+                    if (!state.url) {
+                        throw new Error('Please enter a URL');
+                    }
+                    showStatus('Fetching PostScript file from URL...', 'loading');
+
+                    let response;
+                    try {
+                        response = await fetch(state.url);
+                    } catch (fetchError) {
+                        // Check if it's likely a CORS error
+                        if (fetchError.message.includes('Failed to fetch') ||
+                            fetchError.name === 'TypeError') {
+                            throw new Error(
+                                '❌ CORS Error: The server doesn\'t allow cross-origin requests.\n\n' +
+                                '💡 Solution: Download the file and upload it using the "Upload File" option.\n\n' +
+                                'Technical Details:\n' +
+                                '• The server needs to send the "Access-Control-Allow-Origin" header\n' +
+                                '• This is a browser security feature (CORS policy)\n' +
+                                '• You can download the file directly: ' + state.url + '\n\n' +
+                                'Click below to download the file directly.'
+                            );
+                        }
+                        throw fetchError;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+                    }
+
+                    const rawData = await response.arrayBuffer();
+                    filename = state.url.split('/').pop() || 'downloaded.ps';
+                    psData = await processPostScriptData(rawData, filename);
+                }
+
+                showStatus('Converting PostScript to PDF...', 'loading');
+                const pdfBlob = await convertPSToPDF(psData);
+
+                // Create URL for viewing
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                state.pdfBlob = pdfBlob;
+                state.pdfUrl = blobUrl;
+
+                showPdfSection(blobUrl);
+                showStatus('Conversion successful!', 'success');
+
+            } catch (error) {
+                console.error('Conversion error:', error);
+                showStatus(error.message, 'error');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // Download the converted PDF
+        function downloadPDF() {
+            if (state.pdfBlob) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(state.pdfBlob);
+                a.download = 'converted.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        }
+
+        // Initialize
+        updateConvertButton();
+    </script>
+</body>
+
+</html>
